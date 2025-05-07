@@ -14,7 +14,7 @@ async def discover():
     """Discover Bluetooth LE devices."""
     devices = await BleakScanner.discover()
     LOGGER.debug("Discovered devices: %s", [{"address": device.address, "name": device.name} for device in devices])
-    return [device for device in devices if device.name and device.name.lower().startswith("tl100")]
+    return [device for device in devices if device.name and device.name.lower().startswith("wl90")]
 
 def create_status_callback(future: asyncio.Future):
     def callback(sender: int, data: bytearray):
