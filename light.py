@@ -118,7 +118,7 @@ class BeurerLight(LightEntity):
             await self._instance.set_color(color)
 
         if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT]:
-            await self._instance.set_effect(kwargs[ATTR_EFFECT])
+           await self._instance.set_effect(kwargs[ATTR_EFFECT])
 
 
     async def async_turn_off(self, **kwargs: Any) -> None:
