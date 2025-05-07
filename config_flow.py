@@ -97,13 +97,24 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ), errors={})
 
     async def toggle_light(self):
+        """Modified toggle_light with better error handling."""
         if not self.beurer_instance:
-            self.beurer_instance = BeurerInstance(await get_device(self.mac))
+            device = await get_device(self.mac)
+            if not device:
+                LOGGER.error(f"Could not find device with MAC {self.mac}")
+                return Exception("Device not found")
+            self.beurer_instance = BeurerInstance(device)
+            
         try:
             LOGGER.debug("Going to update from config flow")
             await self.beurer_instance.update()
             LOGGER.debug(f"Finished updating from config flow, light is {self.beurer_instance.is_on}")
-            if self.beurer_instance.is_on:
+            
+            # Add delay for connection stability
+            await asyncio.sleep(0.5)
+            
+            current_state = bool(self.beurer_instance.is_on)
+            if current_state:
                 await self.beurer_instance.turn_off()
                 await asyncio.sleep(2)
                 await self.beurer_instance.turn_on()
@@ -111,8 +122,15 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.beurer_instance.turn_on()
                 await asyncio.sleep(2)
                 await self.beurer_instance.turn_off()
-        except (Exception) as error:
-            LOGGER.error(f"Error while toggling light: {error}")
+                
+            return None
+            
+        except Exception as error:
+            LOGGER.error(f"Error while toggling light: {str(error)}")
             return error
+            
         finally:
-            await self.beurer_instance.disconnect()
+            try:
+                await self.beurer_instance.disconnect()
+            except Exception as error:
+                LOGGER.warning(f"Error during disconnect: {str(error)}")
