@@ -100,25 +100,38 @@ class BeurerLight(LightEntity):
 
     def _transform_color_brightness(self, color: Tuple[int, int, int], set_brightness: int):
         rgb = match_max_scale((255,), color)
-        res = tuple(color * set_brightness // 255 for color in rgb)
+        res = tuple(int(color_val * set_brightness // 255) for color_val in rgb)
         return res
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         LOGGER.debug(f"Turning light on with args: {kwargs}")
-        #if not self.is_on:
-        #    await self._instance.turn_on()
+
+        # Handle the case where no arguments are provided - just turn on
         if len(kwargs) == 0:
             await self._instance.turn_on()
+            return
 
-        if ATTR_BRIGHTNESS in kwargs and kwargs[ATTR_BRIGHTNESS]:
-            await self._instance.set_white(kwargs[ATTR_BRIGHTNESS])
+        # Handle brightness for white mode
+        if ATTR_BRIGHTNESS in kwargs and kwargs[ATTR_BRIGHTNESS] is not None:
+            brightness = kwargs[ATTR_BRIGHTNESS]
+            # If only brightness is set and no color, assume white mode
+            if ATTR_RGB_COLOR not in kwargs and ATTR_EFFECT not in kwargs:
+                await self._instance.set_white(brightness)
+                return
 
-        if ATTR_RGB_COLOR in kwargs and kwargs[ATTR_RGB_COLOR]:
+        # Handle RGB color
+        if ATTR_RGB_COLOR in kwargs and kwargs[ATTR_RGB_COLOR] is not None:
             color = kwargs[ATTR_RGB_COLOR]
+            # If brightness is also provided, apply it to the color
+            if ATTR_BRIGHTNESS in kwargs and kwargs[ATTR_BRIGHTNESS] is not None:
+                brightness = kwargs[ATTR_BRIGHTNESS]
+                # Transform color with brightness
+                color = self._transform_color_brightness(color, brightness)
             await self._instance.set_color(color)
 
-        if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT]:
-           await self._instance.set_effect(kwargs[ATTR_EFFECT])
+        # Handle effect (should be set after color to avoid conflicts)
+        if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT] is not None:
+            await self._instance.set_effect(kwargs[ATTR_EFFECT])
 
 
     async def async_turn_off(self, **kwargs: Any) -> None:

@@ -105,6 +105,11 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return Exception("Device not found")
             self.beurer_instance = BeurerInstance(device)
             
+        # Additional check to ensure the instance was properly created
+        if not self.beurer_instance or not self.beurer_instance._device:
+            LOGGER.error(f"BeurerInstance not properly initialized for MAC {self.mac}")
+            return Exception("Instance initialization failed")
+
         try:
             LOGGER.debug("Going to update from config flow")
             await self.beurer_instance.update()
@@ -131,6 +136,7 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             
         finally:
             try:
-                await self.beurer_instance.disconnect()
+                if self.beurer_instance:
+                    await self.beurer_instance.disconnect()
             except Exception as error:
                 LOGGER.warning(f"Error during disconnect: {str(error)}")
