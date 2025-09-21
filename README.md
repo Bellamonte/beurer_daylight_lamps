@@ -1,7 +1,7 @@
 # ha-beurer
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/deadolus/ha-beurer)
-![Hassfest](https://github.com/deadolus/ha-beurer/actions/workflows/hassfest.yaml/badge.svg)
-![HACS](https://github.com/deadolus/ha-beurer/actions/workflows/hacs.yml/badge.svg)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/Bellamonte/ha-beurer)
+![Hassfest](https://github.com/Bellamonte/ha-beurer/actions/workflows/hassfest.yaml/badge.svg)
+![HACS](https://github.com/Bellamonte/ha-beurer/actions/workflows/hacs.yml/badge.svg)
 
 Home Assistant integration for BLE based Beurer TL100/wellbeing/Daylight therapy lamp
 
@@ -20,7 +20,7 @@ You can manually clone this repository inside `config/custom_components/beurer`.
 For  example, from Terminal plugin:
 ```
 cd /config/custom_components
-git clone https://github.com/deadolus/ha-beurer beurer
+git clone https://github.com/Bellamonte/ha-beurer beurer
 ```
 
 ## Setup
@@ -58,8 +58,8 @@ logger:
 ```
 
 ## Credits
-This integration will is a fork of [sysofwan ha-triones integration](https://github.com/sysofwan/ha-triones), whose framework I used for this Beurer integration. 
+This integration is a fork of [jmac83 ha-beurer integration](https://github.com/jmac83/ha-beurer), which itself is a fork of [deadolus ha-beurer integration](https://github.com/deadolus/ha-beurer), which itself is a fork of [sysofwan ha-triones integration](https://github.com/sysofwan/ha-triones), whose framework I used for this Beurer integration. 
 
-Additional help by: 
+Additional help on [deadolus ha-beurer integration](https://github.com/deadolus/ha-beurer) by: 
 - [@pyromaniac2k](https://github.com/pyromaniac2k)
 - [@ALandOfDodd](https://github.com/LandOfDodd)
