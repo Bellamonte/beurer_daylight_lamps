@@ -3,7 +3,7 @@
 ![Hassfest](https://github.com/deadolus/ha-beurer/actions/workflows/hassfest.yaml/badge.svg)
 ![HACS](https://github.com/deadolus/ha-beurer/actions/workflows/hacs.yml/badge.svg)
 
-Home Assistant integration for BLE based Beurer WL90/wellbeing/Daylight therapy lamp
+Home Assistant integration for BLE based Beurer TL100/wellbeing/Daylight therapy lamp
 
 Supports controlling BLE based lights controllable through the Beurer LightUp app.
 

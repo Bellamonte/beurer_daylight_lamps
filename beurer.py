@@ -29,7 +29,7 @@ READ_CHARACTERISTIC_UUIDS  = ["0734594a-a8e7-4b1a-a6b1-cd5243059a57"]
 async def discover():
     devices = await BleakScanner.discover()
     LOGGER.debug("Discovered devices: %s", [{"address": device.address, "name": device.name} for device in devices])
-    return [device for device in devices if device.name and device.name.lower().startswith("wl90")]
+    return [device for device in devices if device.name and device.name.lower().startswith("tl100")]
 
 async def get_device(mac: str) -> BLEDevice | None:
     # More robust get_device
