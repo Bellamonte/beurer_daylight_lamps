@@ -1,5 +1,5 @@
 {
-    "domain": "beurer",
+    "domain": "ha_beurer",
     "name": "Beurer",
     "codeowners": [],
     "config_flow": true,
