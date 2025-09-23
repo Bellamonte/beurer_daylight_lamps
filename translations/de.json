@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "mac": "Bluetooth-MAC-Adresse",
+          "name": "Name"
+        },
+        "title": "Wählen Sie ein Beurer-Licht. Stellen Sie sicher, dass das Licht zur Validierung sichtbar ist."
+      },
+      "validate": {
+        "data": {
+          "retry": "Verbindung erneut validieren?",
+          "flicker": "Hat das Licht geblinkt?"
+        },
+        "title": "Beurer-Verbindung validieren"
+      },
+      "manual": {
+        "data": {
+          "mac": "Bluetooth-MAC-Adresse",
+          "name": "Name"
+        },
+        "title": "Bluetooth-MAC-Adresse eingeben"
+      }
+    },
+    "error": {
+      "connect": "Verbindung zu Beurer-Licht nicht möglich"
+    },
+    "abort": {
+      "cannot_validate": "Beurer-Licht konnte nicht validiert werden",
+      "cannot_connect": "Verbindung zu Beurer-Licht nicht möglich"
+    }
+  },
+  "title": "Beurer"
+}

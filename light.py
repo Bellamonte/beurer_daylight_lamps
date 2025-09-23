@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import voluptuous as vol
 from typing import Any, Optional, Tuple
 
@@ -100,26 +101,73 @@ class BeurerLight(LightEntity):
 
     def _transform_color_brightness(self, color: Tuple[int, int, int], set_brightness: int):
         rgb = match_max_scale((255,), color)
-        res = tuple(color * set_brightness // 255 for color in rgb)
+        res = tuple(int(color_val * set_brightness // 255) for color_val in rgb)
         return res
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         LOGGER.debug(f"Turning light on with args: {kwargs}")
-        #if not self.is_on:
-        #    await self._instance.turn_on()
+
+        # Handle the case where no arguments are provided - just turn on
         if len(kwargs) == 0:
             await self._instance.turn_on()
+            return
 
-        if ATTR_BRIGHTNESS in kwargs and kwargs[ATTR_BRIGHTNESS]:
-            await self._instance.set_white(kwargs[ATTR_BRIGHTNESS])
+        # HYBRID FIX: Use the existing methods but with smart mode switching
+        current_mode = self._instance.color_mode
 
-        if ATTR_RGB_COLOR in kwargs and kwargs[ATTR_RGB_COLOR]:
-            color = kwargs[ATTR_RGB_COLOR]
-            await self._instance.set_color(color)
+        # Determine target mode based on parameters
+        target_mode = None
+        if ATTR_RGB_COLOR in kwargs or ATTR_EFFECT in kwargs:
+            target_mode = COLOR_MODE_RGB
+        elif ATTR_BRIGHTNESS in kwargs and ATTR_RGB_COLOR not in kwargs and ATTR_EFFECT not in kwargs:
+            target_mode = COLOR_MODE_WHITE
 
-        if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT]:
-           await self._instance.set_effect(kwargs[ATTR_EFFECT])
+        # Force mode switch by updating internal state if needed
+        if target_mode and target_mode != current_mode:
+            LOGGER.debug(f"Mode switch required: {current_mode} -> {target_mode}")
+            # Update internal mode first
+            self._instance._mode = target_mode
+            # Reset relevant state flags
+            if target_mode == COLOR_MODE_WHITE:
+                self._instance._light_on = False
+                self._instance._color_on = False
+            else:
+                self._instance._light_on = False
+                self._instance._color_on = False
 
+        # Handle white mode using existing method but with forced mode
+        if target_mode == COLOR_MODE_WHITE:
+            brightness = kwargs[ATTR_BRIGHTNESS]
+            LOGGER.debug(f"Setting white mode with brightness {brightness}")
+            # Force the mode and use existing method
+            self._instance._mode = COLOR_MODE_WHITE
+            await self._instance.set_white(brightness)
+            return
+
+        # Handle RGB/effect mode using existing methods
+        if target_mode == COLOR_MODE_RGB:
+            # Force the mode first
+            self._instance._mode = COLOR_MODE_RGB
+
+            # Set color first if provided
+            if ATTR_RGB_COLOR in kwargs:
+                color = kwargs[ATTR_RGB_COLOR]
+                LOGGER.debug(f"Setting RGB color {color}")
+                await self._instance.set_color(color)
+
+                # Then handle brightness if provided with color
+                if ATTR_BRIGHTNESS in kwargs:
+                    brightness = kwargs[ATTR_BRIGHTNESS]
+                    LOGGER.debug(f"Setting color brightness {brightness}")
+                    await asyncio.sleep(0.2)  # Small delay between operations
+                    await self._instance.set_color_brightness(brightness)
+
+            # Handle effect last
+            if ATTR_EFFECT in kwargs:
+                effect = kwargs[ATTR_EFFECT]
+                LOGGER.debug(f"Setting effect {effect}")
+                await asyncio.sleep(0.2)  # Small delay before effect
+                await self._instance.set_effect(effect)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._instance.turn_off()

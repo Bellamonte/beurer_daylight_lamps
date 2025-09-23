@@ -1,17 +1,37 @@
 from typing import Tuple, Callable
-from bleak import BleakClient, BleakScanner, BLEDevice, BleakGATTCharacteristic, BleakError
 import traceback
 import asyncio
 
-# Assuming COLOR_MODE_RGB and COLOR_MODE_WHITE are defined,
-# if not, you might need to define them or handle modes differently.
-# from homeassistant.components.light import (COLOR_MODE_RGB, COLOR_MODE_WHITE)
-# For standalone, let's define them simply if not available from HA context
+# Try to import bleak, but handle gracefully if not available
 try:
-    from homeassistant.components.light import (COLOR_MODE_RGB, COLOR_MODE_WHITE)
+    from bleak import BleakClient, BleakScanner, BLEDevice, BleakGATTCharacteristic, BleakError
+    BLEAK_AVAILABLE = True
 except ImportError:
-    COLOR_MODE_RGB = "rgb"
-    COLOR_MODE_WHITE = "white"
+    BLEAK_AVAILABLE = False
+    # Create dummy classes to prevent import errors
+    class BleakClient:
+        pass
+    class BleakScanner:
+        pass
+    class BLEDevice:
+        pass
+    class BleakGATTCharacteristic:
+        pass
+    class BleakError(Exception):
+        pass
+
+# Use the new ColorMode enum instead of deprecated constants
+try:
+    from homeassistant.components.light import ColorMode
+    COLOR_MODE_RGB = ColorMode.RGB
+    COLOR_MODE_WHITE = ColorMode.WHITE
+except ImportError:
+    # Fallback for older HA versions or standalone use
+    try:
+        from homeassistant.components.light import (COLOR_MODE_RGB, COLOR_MODE_WHITE)
+    except ImportError:
+        COLOR_MODE_RGB = "rgb"
+        COLOR_MODE_WHITE = "white"
 
 
 # Assuming LOGGER is defined, e.g., from .const or basic logging setup
@@ -27,14 +47,43 @@ WRITE_CHARACTERISTIC_UUIDS = ["8b00ace7-eb0b-49b0-bbe9-9aee0a26e1a3"]
 READ_CHARACTERISTIC_UUIDS  = ["0734594a-a8e7-4b1a-a6b1-cd5243059a57"]
 
 async def discover():
-    devices = await BleakScanner.discover()
+    devices = await BleakScanner.discover(timeout=15.0)
     LOGGER.debug("Discovered devices: %s", [{"address": device.address, "name": device.name} for device in devices])
-    return [device for device in devices if device.name and device.name.lower().startswith("tl100")]
+
+    beurer_devices = []
+    for device in devices:
+        if device.name:
+            if device.name.lower().startswith("tl100"):
+                beurer_devices.append(device)
+                LOGGER.debug(f"Found potential Beurer device: {device.address} - {device.name}")
+
+    # If no devices found by name, also check devices that provide the specific characteristics we need
+    if not beurer_devices:
+        LOGGER.debug("No devices found by name pattern, checking for devices with required characteristics...")
+        for device in devices:
+            try:
+                # Try to connect briefly to check characteristics
+                async with BleakClient(device, timeout=10.0) as client:
+                    if client.is_connected:
+                        has_read_char = any(char.uuid in READ_CHARACTERISTIC_UUIDS
+                                          for service in client.services
+                                          for char in service.characteristics)
+                        has_write_char = any(char.uuid in WRITE_CHARACTERISTIC_UUIDS
+                                           for service in client.services
+                                           for char in service.characteristics)
+                        if has_read_char and has_write_char:
+                            beurer_devices.append(device)
+                            LOGGER.debug(f"Found device by characteristics: {device.address} - {device.name}")
+            except Exception as e:
+                LOGGER.debug(f"Could not check characteristics for {device.address}: {e}")
+                continue
+
+    return beurer_devices
 
 async def get_device(mac: str) -> BLEDevice | None:
-    # More robust get_device
+    #More robust get_device
     try:
-        device = await BleakScanner.find_device_by_address(mac, timeout=10.0)
+        device = await BleakScanner.find_device_by_address(mac, timeout=15.0)
         if device:
             LOGGER.debug(f"Found device by MAC via find_device_by_address: {device.address} - {device.name}")
             return device
@@ -45,23 +94,36 @@ async def get_device(mac: str) -> BLEDevice | None:
 
 
     LOGGER.debug(f"Performing full scan to find MAC: {mac}")
-    devices = await BleakScanner.discover(timeout=10.0)
-    LOGGER.debug(f"Full scan discovered: {[{'address': d.address, 'name': d.name} for d in devices]}")
-    return next((device for device in devices if device.address.lower()==mac.lower()),None)
+    try:
+        devices = await BleakScanner.discover(timeout=15.0)
+        LOGGER.debug(f"Full scan discovered: {[{'address': d.address, 'name': d.name} for d in devices]}")
+        return next((device for device in devices if device.address.lower()==mac.lower()), None)
+
+    except Exception as e:
+        LOGGER.error(f"Error during device discovery for {mac}: {e}")
+        LOGGER.error(f"This might indicate a Bluetooth or bleak installation problem")
+        return None
 
 class BeurerInstance:
     def __init__(self, device: BLEDevice) -> None:
         if device is None:
             LOGGER.error("BeurerInstance initialized with None device object.")
-            # Potentially raise an error here or handle this state carefully
-            # For now, we'll let it proceed but it will likely fail on connect
-            self._mac = "UNKNOWN (None Device)"
-            self._device = None # Mark that we don't have a valid BleakClient target
-            return
+            raise ValueError("Cannot initialize BeurerInstance with None device")
+
+        # Additional safety check
+        if not hasattr(device, 'address'):
+            LOGGER.error(f"Device object has no 'address' attribute. Device type: {type(device)}, Device: {device}")
+            raise ValueError(f"Invalid device object: {device}")
 
         self._mac = device.address
         self._device_ble_object = device # Store the original BLEDevice
-        self._device = BleakClient(device, disconnected_callback=self.disconnected_callback)
+
+        try:
+            self._device = BleakClient(device, disconnected_callback=self.disconnected_callback)
+        except Exception as e:
+            LOGGER.error(f"Failed to create BleakClient: {e}")
+            raise
+
         self._trigger_update = None
         self._is_on = False
         self._light_on = False # Initialize explicitly
@@ -74,7 +136,7 @@ class BeurerInstance:
         self._read_uuid = None
         self._mode = COLOR_MODE_WHITE # Default to a mode, e.g., white
         self._supported_effects = ["Off", "Random", "Rainbow", "Rainbow Slow", "Fusion", "Pulse", "Wave", "Chill", "Action", "Forest", "Summer"]
-        
+
         # Defer connection to an explicit call rather than __init__ for more control
         # asyncio.create_task(self.connect())
 
@@ -166,18 +228,31 @@ class BeurerInstance:
         LOGGER.debug("Sending message (packet): "+''.join(format(x, '02x') for x in packet_data))
         await self._write(packet_data)
 
-    async def set_color(self, rgb: Tuple[int, int, int]):
+    async def set_color(self, rgb: Tuple[int, int, int], _from_turn_on: bool = False):
         r, g, b = rgb
         LOGGER.debug(f"Setting to color: R={r}, G={g}, B={b} for {self._mac}")
         self._mode = COLOR_MODE_RGB
         self._rgb_color = (r,g,b)
-        if not self._is_on or not self._color_on: # If not on, or not in color mode, turn_on will handle it
-            await self.turn_on() # turn_on will set the mode to RGB if it's not already
-        await self.sendPacket([0x32,r,g,b])
-        await asyncio.sleep(0.15) # Slightly increased delay
-        await self.triggerStatus()
 
-    async def set_color_brightness(self, brightness: int | None):
+        # SIMPLIFIED: Always ensure we're in RGB mode first, like in set_white
+        if not self._color_on:
+            LOGGER.debug(f"Activating RGB mode for {self._mac}")
+            await self.sendPacket([0x37, 0x02])  # Activate RGB mode
+            await asyncio.sleep(0.3)
+            self._color_on = True
+            self._light_on = False
+            self._is_on = True
+            # Set effect to "Off" immediately to prevent unwanted effects
+            self._effect = "Off"
+            await self.sendPacket([0x34, 0])  # Set effect to "Off" (position 0)
+            await asyncio.sleep(0.3)
+
+        await self.sendPacket([0x32,r,g,b])
+        await asyncio.sleep(0.3) # Delay for stability
+        await self.triggerStatus()
+        await asyncio.sleep(0.2) # Additional delay after status request
+
+    async def set_color_brightness(self, brightness: int | None, _from_turn_on: bool = False):
         LOGGER.debug(f"set_color_brightness called with: {brightness} for {self._mac}")
         actual_brightness_to_set = brightness
         if actual_brightness_to_set is None:
@@ -187,15 +262,17 @@ class BeurerInstance:
         self._mode = COLOR_MODE_RGB
         self._color_brightness = actual_brightness_to_set
 
-        if not self._is_on or not self._color_on:
+        if not _from_turn_on and (not self._is_on or not self._color_on):
             await self.turn_on()
-        
+            return # Don't send packet again, turn_on will handle it
+
         brightness_0_100 = max(0, min(100, int(actual_brightness_to_set / 255 * 100)))
         await self.sendPacket([0x31,0x02, brightness_0_100])
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.5) # Increased delay for stability
         await self.triggerStatus()
+        await asyncio.sleep(0.3) # Additional delay after status request
 
-    async def set_white(self, intensity: int | None):
+    async def set_white(self, intensity: int | None, _from_turn_on: bool = False):
         LOGGER.debug(f"Setting white to intensity: {intensity} for {self._mac}")
         actual_intensity_to_set = intensity
         if actual_intensity_to_set is None:
@@ -205,16 +282,22 @@ class BeurerInstance:
         self._mode = COLOR_MODE_WHITE
         self._brightness = actual_intensity_to_set
 
-        if not self._is_on or not self._light_on:
-            await self.turn_on()
-        
+        # SIMPLIFIED: Always ensure we're in the right mode by activating white mode first
+        if not self._light_on:
+            LOGGER.debug(f"Activating white mode for {self._mac}")
+            await self.sendPacket([0x37, 0x01])  # Activate white mode
+            await asyncio.sleep(0.3)
+            self._light_on = True
+            self._color_on = False
+            self._is_on = True
+
         intensity_0_100 = max(0, min(100, int(actual_intensity_to_set / 255 * 100)))
         await self.sendPacket([0x31,0x01, intensity_0_100])
-        await asyncio.sleep(0.2)
-        await self.set_effect("Off") # This also calls triggerStatus
-        # await self.triggerStatus() # Not needed as set_effect calls it
+        await asyncio.sleep(0.3) # Delay for stability
+        await self.triggerStatus() # Status call
+        await asyncio.sleep(0.2) # Additional delay after status
 
-    async def set_effect(self, effect: str | None):
+    async def set_effect(self, effect: str | None, _from_turn_on: bool = False):
         actual_effect = effect
         if actual_effect is None:
             LOGGER.debug(f"set_effect for {self._mac} received None, defaulting to 'Off'.")
@@ -224,51 +307,62 @@ class BeurerInstance:
         self._mode = COLOR_MODE_RGB # Effects are for color mode
         self._effect = actual_effect # Store the effect we are setting
 
-        if not self._is_on or not self._color_on:
+        if not _from_turn_on and (not self._is_on or not self._color_on):
             await self.turn_on()
-            
+            return # Don't send packet again, turn_on will handle it
+
         await self.sendPacket([0x34, self.find_effect_position(actual_effect)])
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.5) # Increased delay for stability
         await self.triggerStatus()
+        await asyncio.sleep(0.3) # Additional delay after status request
 
     async def turn_on(self):
         LOGGER.debug(f"Turning ON for {self._mac}. Current mode: {self._mode}, is_on: {self._is_on}, light_on: {self._light_on}, color_on: {self._color_on}")
-        if not self._device or not self._device.is_connected:
+
+        # Check if device is properly initialized
+        if not self._device:
+            LOGGER.error(f"Cannot turn on {self._mac}: Device not properly initialized.")
+            return
+
+        if not self._device.is_connected:
+            LOGGER.debug(f"Device {self._mac} not connected, attempting to connect for turn_on")
             if not await self.connect():
                 LOGGER.error(f"Failed to connect in turn_on for {self._mac}. Cannot turn on.")
                 return
 
         if self._mode == COLOR_MODE_WHITE:
             await self.sendPacket([0x37,0x01])
+            await asyncio.sleep(0.5) # Added delay after mode switch
             self._light_on = True
             self._color_on = False # Explicitly set other mode off
         else: # COLOR_MODE_RGB or default
             self._mode = COLOR_MODE_RGB # Ensure mode is RGB if not white
             await self.sendPacket([0x37,0x02])
+            await asyncio.sleep(0.5) # Added delay after mode switch
             self._color_on = True
             self._light_on = False # Explicitly set other mode off
             
             # Only restore state if it was truly off before this call, to avoid command loops
             if not self._is_on: # Check overall _is_on state before it's set to True
                 LOGGER.debug(f"Restoring last known color state for {self._mac} as it was previously off.")
-                await asyncio.sleep(0.2) # Give time for mode switch
-                
+                await asyncio.sleep(0.5) # Increased delay for mode switch
+
                 effect_to_restore = self._effect if self._effect is not None else "Off"
                 LOGGER.debug(f"Restoring effect: {effect_to_restore}")
-                await self.set_effect(effect_to_restore) # set_effect handles None
-                await asyncio.sleep(0.2)
+                await self.set_effect(effect_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
+                await asyncio.sleep(0.5) # Increased delay between operations
 
                 rgb_to_restore = self._rgb_color if self._rgb_color != (0,0,0) else (255,255,255) # Default to white if (0,0,0)
                 LOGGER.debug(f"Restoring color: {rgb_to_restore}")
-                await self.set_color(rgb_to_restore)
-                await asyncio.sleep(0.2)
-                
+                await self.set_color(rgb_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
+                await asyncio.sleep(0.5) # Increased delay between operations
+
                 brightness_to_restore = self._color_brightness
                 LOGGER.debug(f"Restoring color brightness: {brightness_to_restore}")
-                await self.set_color_brightness(brightness_to_restore) # set_color_brightness handles None
+                await self.set_color_brightness(brightness_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
 
         self._is_on = True # Set overall on state
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.5) # Increased delay before final status check
         await self.triggerStatus()
 
     async def turn_off(self):
@@ -368,54 +462,79 @@ class BeurerInstance:
             await self.trigger_entity_update()
 
     async def connect(self) -> bool:
-        if not self._device: # self._device would be None if __init__ received a None device
-            LOGGER.error(f"Cannot connect: BeurerInstance for {self._mac} was not properly initialized with a device object.")
-            return False
-            
-        LOGGER.debug(f"Attempting to connect to device {self._mac}")
         try:
-            if not self._device.is_connected:
-                # Ensure we use the original BLEDevice object if reconnecting client
-                # This assumes self._device_ble_object was stored in __init__
-                if not isinstance(self._device, BleakClient) or self._device.address != self._device_ble_object.address:
-                    self._device = BleakClient(self._device_ble_object, disconnected_callback=self.disconnected_callback)
+            if not self._device: # self._device would be None if __init__ received a None device
+                LOGGER.error(f"Cannot connect: BeurerInstance for {self._mac} was not properly initialized with a device object.")
+                return False
 
-                await self._device.connect(timeout=20.0)
-                LOGGER.info(f"Successfully connected to {self._mac}")
+            try:
+                is_connected = self._device.is_connected
+            except Exception as e:
+                LOGGER.error(f"Error checking connection status: {e}")
+                return False
+
+            try:
+                if not self._device.is_connected:
+                    # Check if device_ble_object is valid
+                    if not self._device_ble_object:
+                        LOGGER.error(f"self._device_ble_object is None!")
+                        return False
+
+                    if not hasattr(self._device_ble_object, 'address'):
+                        LOGGER.error(f"self._device_ble_object has no address attribute: {self._device_ble_object}")
+                        return False
+
+                    # Ensure we use the original BLEDevice object if reconnecting client
+                    # This assumes self._device_ble_object was stored in __init__
+                    try:
+                        device_address = self._device.address if hasattr(self._device, '_backend') and self._device._backend else None
+                    except:
+                        device_address = None
+
+                    if not isinstance(self._device, BleakClient) or device_address != self._device_ble_object.address:
+                        self._device = BleakClient(self._device_ble_object, disconnected_callback=self.disconnected_callback)
+
+                    await self._device.connect(timeout=20.0)
+                    LOGGER.info(f"Successfully connected to {self._mac}")
+                    await asyncio.sleep(0.1)
+
+                    self._write_uuid = None
+                    self._read_uuid = None
+                    for service in self._device.services: # Use self._device (BleakClient)
+                        for char_obj in service.characteristics: # Iterate over BleakGATTCharacteristic objects
+                            if char_obj.uuid in WRITE_CHARACTERISTIC_UUIDS:
+                                self._write_uuid = char_obj.uuid
+                            if char_obj.uuid in READ_CHARACTERISTIC_UUIDS:
+                                self._read_uuid = char_obj.uuid
+
+                    if not self._read_uuid or not self._write_uuid:
+                        LOGGER.error(f"No supported read/write UUIDs found for {self._mac}. Disconnecting.")
+                        await self.disconnect() # Call disconnect to clean up
+                        return False
+                    LOGGER.info(f"For {self._mac}: Read UUID={self._read_uuid}, Write UUID={self._write_uuid}")
+
                 await asyncio.sleep(0.1)
+                LOGGER.info(f"Starting notifications for {self._mac} on {self._read_uuid}")
+                await self._device.start_notify(self._read_uuid, self.notification_handler)
+                LOGGER.info(f"Notifications started for {self._mac}")
 
-                self._write_uuid = None
-                self._read_uuid = None
-                for service in self._device.services: # Use self._device (BleakClient)
-                    for char_obj in service.characteristics: # Iterate over BleakGATTCharacteristic objects
-                        if char_obj.uuid in WRITE_CHARACTERISTIC_UUIDS:
-                            self._write_uuid = char_obj.uuid
-                        if char_obj.uuid in READ_CHARACTERISTIC_UUIDS:
-                            self._read_uuid = char_obj.uuid
-                
-                if not self._read_uuid or not self._write_uuid:
-                    LOGGER.error(f"No supported read/write UUIDs found for {self._mac}. Disconnecting.")
-                    await self.disconnect() # Call disconnect to clean up
-                    return False
-                LOGGER.info(f"For {self._mac}: Read UUID={self._read_uuid}, Write UUID={self._write_uuid}")
+                await self.triggerStatus() # Get initial status
+                await asyncio.sleep(0.1) # Allow status to be processed
+                return True
+            except BleakError as error:
+                track = traceback.format_exc()
+                LOGGER.error(f"BleakError connecting to {self._mac}: {error}")
+                LOGGER.error(f"BleakError traceback: {track}")
+            except Exception as inner_error:
+                track = traceback.format_exc()
+                LOGGER.error(f"Inner exception connecting to {self._mac}: {inner_error}")
+                LOGGER.error(f"Inner exception traceback: {track}")
 
-            await asyncio.sleep(0.1)
-            LOGGER.info(f"Starting notifications for {self._mac} on {self._read_uuid}")
-            await self._device.start_notify(self._read_uuid, self.notification_handler)
-            LOGGER.info(f"Notifications started for {self._mac}")
-
-            await self.triggerStatus() # Get initial status
-            await asyncio.sleep(0.1) # Allow status to be processed
-            return True
-        except BleakError as error:
+        except Exception as outer_error:
             track = traceback.format_exc()
-            LOGGER.debug(f"BleakError track for connect {self._mac}: {track}")
-            LOGGER.error(f"BleakError connecting to {self._mac}: {error}")
-        except Exception as error:
-            track = traceback.format_exc()
-            LOGGER.debug(f"Exception track for connect {self._mac}: {track}")
-            LOGGER.error(f"Unexpected error connecting to {self._mac}: {error}")
-        
+            LOGGER.error(f"Outer exception in connect() for {self._mac}: {outer_error}")
+            LOGGER.error(f"Outer exception traceback: {track}")
+
         await self.disconnect() # Ensure disconnected on any error during connect
         return False
 

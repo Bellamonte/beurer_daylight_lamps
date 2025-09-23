@@ -24,11 +24,11 @@
             }
         },
         "error": {
-            "connect": "Unable to connect to Beurer"
+            "connect": "Unable to connect to Beurer light"
         },
         "abort": {
             "cannot_validate": "Unable to validate Beurer light",
-            "cannot_connect": "Unable to connect to Beurer"
+            "cannot_connect": "Unable to connect to Beurer light"
         }
     },
     "title": "Beurer"

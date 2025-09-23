@@ -17,7 +17,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device = await get_device(entry.data[CONF_MAC])
     if device == None:
         LOGGER.error(f"Was not able to find device with mac {entry.data[CONF_MAC]}")
-    instance = BeurerInstance(device)
+        return False  # Return False instead of continuing with None device
+
+    try:
+        instance = BeurerInstance(device)
+    except ValueError as e:
+        LOGGER.error(f"Failed to create BeurerInstance for {entry.data[CONF_MAC]}: {e}")
+        return False
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = instance
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
