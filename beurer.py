@@ -233,12 +233,24 @@ class BeurerInstance:
         LOGGER.debug(f"Setting to color: R={r}, G={g}, B={b} for {self._mac}")
         self._mode = COLOR_MODE_RGB
         self._rgb_color = (r,g,b)
-        if not _from_turn_on and (not self._is_on or not self._color_on): # If not on, or not in color mode, turn_on will handle it
-            await self.turn_on() # turn_on will set the mode to RGB if it's not already
-            return # Don't send packet again, turn_on will handle it
+
+        # SIMPLIFIED: Always ensure we're in RGB mode first, like in set_white
+        if not self._color_on:
+            LOGGER.debug(f"Activating RGB mode for {self._mac}")
+            await self.sendPacket([0x37, 0x02])  # Activate RGB mode
+            await asyncio.sleep(0.3)
+            self._color_on = True
+            self._light_on = False
+            self._is_on = True
+            # Set effect to "Off" immediately to prevent unwanted effects
+            self._effect = "Off"
+            await self.sendPacket([0x34, 0])  # Set effect to "Off" (position 0)
+            await asyncio.sleep(0.3)
+
         await self.sendPacket([0x32,r,g,b])
-        await asyncio.sleep(0.15) # Slightly increased delay
+        await asyncio.sleep(0.3) # Delay for stability
         await self.triggerStatus()
+        await asyncio.sleep(0.2) # Additional delay after status request
 
     async def set_color_brightness(self, brightness: int | None, _from_turn_on: bool = False):
         LOGGER.debug(f"set_color_brightness called with: {brightness} for {self._mac}")
@@ -256,8 +268,9 @@ class BeurerInstance:
 
         brightness_0_100 = max(0, min(100, int(actual_brightness_to_set / 255 * 100)))
         await self.sendPacket([0x31,0x02, brightness_0_100])
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.5) # Increased delay for stability
         await self.triggerStatus()
+        await asyncio.sleep(0.3) # Additional delay after status request
 
     async def set_white(self, intensity: int | None, _from_turn_on: bool = False):
         LOGGER.debug(f"Setting white to intensity: {intensity} for {self._mac}")
@@ -269,15 +282,20 @@ class BeurerInstance:
         self._mode = COLOR_MODE_WHITE
         self._brightness = actual_intensity_to_set
 
-        if not _from_turn_on and (not self._is_on or not self._light_on):
-            await self.turn_on()
-            return # Don't send packet again, turn_on will handle it
+        # SIMPLIFIED: Always ensure we're in the right mode by activating white mode first
+        if not self._light_on:
+            LOGGER.debug(f"Activating white mode for {self._mac}")
+            await self.sendPacket([0x37, 0x01])  # Activate white mode
+            await asyncio.sleep(0.3)
+            self._light_on = True
+            self._color_on = False
+            self._is_on = True
 
         intensity_0_100 = max(0, min(100, int(actual_intensity_to_set / 255 * 100)))
         await self.sendPacket([0x31,0x01, intensity_0_100])
-        await asyncio.sleep(0.2)
-        await self.set_effect("Off", _from_turn_on=True) # This also calls triggerStatus
-        # await self.triggerStatus() # Not needed as set_effect calls it
+        await asyncio.sleep(0.3) # Delay for stability
+        await self.triggerStatus() # Status call
+        await asyncio.sleep(0.2) # Additional delay after status
 
     async def set_effect(self, effect: str | None, _from_turn_on: bool = False):
         actual_effect = effect
@@ -294,8 +312,9 @@ class BeurerInstance:
             return # Don't send packet again, turn_on will handle it
 
         await self.sendPacket([0x34, self.find_effect_position(actual_effect)])
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.5) # Increased delay for stability
         await self.triggerStatus()
+        await asyncio.sleep(0.3) # Additional delay after status request
 
     async def turn_on(self):
         LOGGER.debug(f"Turning ON for {self._mac}. Current mode: {self._mode}, is_on: {self._is_on}, light_on: {self._light_on}, color_on: {self._color_on}")
@@ -313,35 +332,37 @@ class BeurerInstance:
 
         if self._mode == COLOR_MODE_WHITE:
             await self.sendPacket([0x37,0x01])
+            await asyncio.sleep(0.5) # Added delay after mode switch
             self._light_on = True
             self._color_on = False # Explicitly set other mode off
         else: # COLOR_MODE_RGB or default
             self._mode = COLOR_MODE_RGB # Ensure mode is RGB if not white
             await self.sendPacket([0x37,0x02])
+            await asyncio.sleep(0.5) # Added delay after mode switch
             self._color_on = True
             self._light_on = False # Explicitly set other mode off
             
             # Only restore state if it was truly off before this call, to avoid command loops
             if not self._is_on: # Check overall _is_on state before it's set to True
                 LOGGER.debug(f"Restoring last known color state for {self._mac} as it was previously off.")
-                await asyncio.sleep(0.2) # Give time for mode switch
+                await asyncio.sleep(0.5) # Increased delay for mode switch
 
                 effect_to_restore = self._effect if self._effect is not None else "Off"
                 LOGGER.debug(f"Restoring effect: {effect_to_restore}")
                 await self.set_effect(effect_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.5) # Increased delay between operations
 
                 rgb_to_restore = self._rgb_color if self._rgb_color != (0,0,0) else (255,255,255) # Default to white if (0,0,0)
                 LOGGER.debug(f"Restoring color: {rgb_to_restore}")
                 await self.set_color(rgb_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.5) # Increased delay between operations
 
                 brightness_to_restore = self._color_brightness
                 LOGGER.debug(f"Restoring color brightness: {brightness_to_restore}")
                 await self.set_color_brightness(brightness_to_restore, _from_turn_on=True) # Pass flag to prevent recursion
 
         self._is_on = True # Set overall on state
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.5) # Increased delay before final status check
         await self.triggerStatus()
 
     async def turn_off(self):
