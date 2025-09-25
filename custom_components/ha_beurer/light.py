@@ -1,10 +1,9 @@
-import logging
 import asyncio
 import voluptuous as vol
 from typing import Any, Optional, Tuple
 
-from .beurer import BeurerInstance
-from .const import DOMAIN
+from custom_components.ha_beurer.beurer import BeurerInstance
+from custom_components.ha_beurer.const import DOMAIN
 
 from homeassistant.const import CONF_MAC
 import homeassistant.helpers.config_validation as cv
@@ -12,7 +11,7 @@ from homeassistant.components.light import (COLOR_MODE_RGB, PLATFORM_SCHEMA,
                                             LightEntity, ATTR_RGB_COLOR, ATTR_BRIGHTNESS, ATTR_EFFECT, COLOR_MODE_WHITE, ATTR_WHITE, LightEntityFeature)
 from homeassistant.util.color import (match_max_scale)
 from homeassistant.helpers import device_registry
-from .const import LOGGER
+from custom_components.ha_beurer.const import LOGGER
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_MAC): cv.string
