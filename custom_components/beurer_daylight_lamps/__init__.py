@@ -12,7 +12,7 @@ from .beurer import BeurerInstance, get_device
 PLATFORMS = ["light"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Beurer from a config entry."""
+    """Set up Beurer daylight lamp from a config entry."""
     LOGGER.debug(f"Setting up device from __init__")
     device = await get_device(entry.data[CONF_MAC])
     if device == None:

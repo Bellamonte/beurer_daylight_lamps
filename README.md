@@ -1,11 +1,11 @@
-# ha_beurer
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/Bellamonte/ha_beurer)
-![Hassfest](https://github.com/Bellamonte/ha_beurer/actions/workflows/hassfest.yaml/badge.svg)
-![HACS](https://github.com/Bellamonte/ha_beurer/actions/workflows/hacs.yml/badge.svg)
+# beurer_daylight_lamps
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/Bellamonte/beurer_daylight_lamps)
+![Hassfest](https://github.com/Bellamonte/beurer_daylight_lamps/actions/workflows/hassfest.yaml/badge.svg)
+![HACS](https://github.com/Bellamonte/beurer_daylight_lamps/actions/workflows/hacs.yml/badge.svg)
 
-Home Assistant integration for BLE based Beurer TL100/wellbeing/Daylight therapy lamp
+Home Assistant integration for BLE based Beurer daylight lamps
 
-Supports controlling BLE based lights controllable through the Beurer LightUp app.
+Supports controlling BLE based lights controllable through the Beurer LightUp app. Currently tested and directly supported with TL100 only.
 
 ## Installation
 
@@ -20,20 +20,20 @@ You can manually clone this repository inside `config/custom_components/beurer`.
 For  example, from Terminal plugin:
 ```
 cd /config/custom_components
-git clone https://github.com/Bellamonte/ha_beurer ha_beurer
+git clone https://github.com/Bellamonte/beurer_daylight_lamps beurer_daylight_lamps
 ```
 
 ## Setup
-After installation, you should find Beurer under the Configuration -> Integrations -> Add integration.
+After installation, you should find "Beurer Daylight Lamps" under the Configuration -> Integrations -> Add integration.
 
-The setup step includes discovery which will list out all Beurer lights discovered. The setup will validate connection by toggling the selected light. Make sure your light is in-sight to validate this.
+The setup step includes discovery which will list out all Beurer daylight lamps discovered. The setup will validate connection by toggling the selected light. Make sure your light is in-sight to validate this.
 
-The setup needs to be repeated for each light.
+The setup needs to be repeated for each lamp.
 
 ## Features
-1. Discovery: Automatically discover Beurer based lights without manually hunting for Bluetooth MAC address
+1. Discovery: Automatically discover Beurer daylight lamps without manually hunting for Bluetooth MAC address
 2. On/Off/RGB/Brightness support
-3. Multiple light support
+3. Multiple lamp support
 4. Light modes (Rainbow, Pulse, Forest, ..) as found in the app
 
 ## Known issues
@@ -58,7 +58,7 @@ logger:
 ```
 
 ## Credits
-This integration is a fork of [jmac83 ha-beurer integration](https://github.com/jmac83/ha-beurer), which itself is a fork of [deadolus ha-beurer integration](https://github.com/deadolus/ha-beurer), which itself is a fork of [sysofwan ha-triones integration](https://github.com/sysofwan/ha-triones), whose framework I used for this Beurer integration. 
+This integration is a fork of [jmac83 ha-beurer integration](https://github.com/jmac83/ha-beurer), which itself is a fork of [deadolus ha-beurer integration](https://github.com/deadolus/ha-beurer), which itself is a fork of [sysofwan ha-triones integration](https://github.com/sysofwan/ha-triones), whose framework I used for this Beurer daylight lamp integration. 
 
 Additional help on [deadolus ha-beurer integration](https://github.com/deadolus/ha-beurer) by: 
 - [@pyromaniac2k](https://github.com/pyromaniac2k)

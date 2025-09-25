@@ -113,7 +113,7 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             LOGGER.debug("Going to update from config flow")
             await self.beurer_instance.update()
-            LOGGER.debug(f"Finished updating from config flow, light is {self.beurer_instance.is_on}")
+            LOGGER.debug(f"Finished updating from config flow, lamp is {self.beurer_instance.is_on}")
             
             # Add delay for connection stability
             await asyncio.sleep(0.5)
@@ -131,7 +131,7 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return None
             
         except Exception as error:
-            LOGGER.error(f"Error while toggling light: {str(error)}")
+            LOGGER.error(f"Error while toggling lamp: {str(error)}")
             return error
             
         finally:

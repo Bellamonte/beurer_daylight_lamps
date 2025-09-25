@@ -6,30 +6,30 @@
           "mac": "Bluetooth-MAC-Adresse",
           "name": "Name"
         },
-        "title": "Wählen Sie ein Beurer-Licht. Stellen Sie sicher, dass das Licht zur Validierung sichtbar ist."
+        "title": "Wählen Sie eine Beurer Lampe. Stellen Sie sicher, dass das Licht zur Validierung sichtbar ist."
       },
       "validate": {
         "data": {
           "retry": "Verbindung erneut validieren?",
           "flicker": "Hat das Licht geblinkt?"
         },
-        "title": "Beurer-Verbindung validieren"
+        "title": "Verbindung zu Beurer Lampe validieren"
       },
       "manual": {
         "data": {
-          "mac": "Bluetooth-MAC-Adresse",
+          "mac": "Bluetooth-Name oder -MAC-Adresse",
           "name": "Name"
         },
         "title": "Bluetooth-MAC-Adresse eingeben"
       }
     },
     "error": {
-      "connect": "Verbindung zu Beurer-Licht nicht möglich"
+      "connect": "Verbindung zu Beurer Lampe nicht möglich"
     },
     "abort": {
-      "cannot_validate": "Beurer-Licht konnte nicht validiert werden",
-      "cannot_connect": "Verbindung zu Beurer-Licht nicht möglich"
+      "cannot_validate": "Beurer Lampe konnte nicht validiert werden",
+      "cannot_connect": "Verbindung zu Beurer Lampe nicht möglich"
     }
   },
-  "title": "Beurer"
+  "title": "Beurer Tageslicht-Lampen"
 }

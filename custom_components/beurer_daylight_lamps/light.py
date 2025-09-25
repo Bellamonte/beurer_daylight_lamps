@@ -2,8 +2,8 @@ import asyncio
 import voluptuous as vol
 from typing import Any, Optional, Tuple
 
-from custom_components.ha_beurer.beurer import BeurerInstance
-from custom_components.ha_beurer.const import DOMAIN
+from custom_components.beurer_daylight_lamps.beurer import BeurerInstance
+from custom_components.beurer_daylight_lamps.const import DOMAIN
 
 from homeassistant.const import CONF_MAC
 import homeassistant.helpers.config_validation as cv
@@ -11,14 +11,14 @@ from homeassistant.components.light import (COLOR_MODE_RGB, PLATFORM_SCHEMA,
                                             LightEntity, ATTR_RGB_COLOR, ATTR_BRIGHTNESS, ATTR_EFFECT, COLOR_MODE_WHITE, ATTR_WHITE, LightEntityFeature)
 from homeassistant.util.color import (match_max_scale)
 from homeassistant.helpers import device_registry
-from custom_components.ha_beurer.const import LOGGER
+from custom_components.beurer_daylight_lamps.const import LOGGER
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_MAC): cv.string
 })
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-    LOGGER.debug(f"Setting up device from light")
+    LOGGER.debug(f"Setting up device from lamp")
     instance = hass.data[DOMAIN][config_entry.entry_id]
     async_add_devices([BeurerLight(instance, config_entry.data["name"], config_entry.entry_id)])
 
@@ -104,7 +104,7 @@ class BeurerLight(LightEntity):
         return res
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        LOGGER.debug(f"Turning light on with args: {kwargs}")
+        LOGGER.debug(f"Turning lamp on with args: {kwargs}")
 
         # Handle the case where no arguments are provided - just turn on
         if len(kwargs) == 0:
