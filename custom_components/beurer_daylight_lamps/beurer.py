@@ -411,7 +411,7 @@ class BeurerInstance:
                 trigger_ha_update = True
             self._light_on = new_light_on
             self._brightness = new_brightness
-            if self._light_on: self._mode = COLOR_MODE_WHITE # Update mode if white light is on
+            if self._light_on: self._mode = COLOR_MODE_WHITE # Update mode if white lamp is on
             LOGGER.debug(f"Status v1 (White) for {self._mac}: On={self._light_on}, Brightness={self._brightness}, Mode={self._mode}")
 
         elif reply_version == 2:
@@ -435,7 +435,7 @@ class BeurerInstance:
             self._effect = new_effect
             self._color_brightness = new_color_brightness
             self._rgb_color = new_rgb_color
-            if self._color_on: self._mode = COLOR_MODE_RGB # Update mode if color light is on
+            if self._color_on: self._mode = COLOR_MODE_RGB # Update mode if color lamp is on
             LOGGER.debug(f"Status v2 (Color) for {self._mac}: On={self._color_on}, Brightness={self._color_brightness}, RGB={self._rgb_color}, Effect='{self._effect}', Mode={self._mode}")
         
         elif reply_version == 255:

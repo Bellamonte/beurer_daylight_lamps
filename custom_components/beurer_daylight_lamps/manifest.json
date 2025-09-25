@@ -1,0 +1,13 @@
+{
+    "domain": "beurer_daylight_lamps",
+    "name": "Beurer Daylight Lamps",
+    "codeowners": ["@Bellamonte"],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/Bellamonte/beurer_daylight_lamps",
+    "integration_type": "hub",
+    "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/Bellamonte/beurer_daylight_lamps/issues",
+    "requirements": ["bleak>=0.20.5"],
+    "version": "0.0.1"
+}

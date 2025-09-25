@@ -3,17 +3,17 @@
         "step": {
             "user": {
                 "data": {
-                    "mac": "Bluetooth MAC address",
+                    "mac": "Bluetooth name or MAC address",
                     "name": "Name"
                 },
-                "title": "Pick a Beurer light. Make sure light in sight for validation."
+                "title": "Pick a Beurer lamp. Make sure lamp is in sight for validation."
             },
             "validate": {
                 "data": {
                     "retry": "Retry validate connection?",
-                    "flicker": "Did the light blink?"
+                    "flicker": "Did the lamp blink?"
                 },
-                "title": "Validate Beurer connection"
+                "title": "Validate connection to Beurer lamp"
             },
             "manual": {
                 "data": {
@@ -24,12 +24,12 @@
             }
         },
         "error": {
-            "connect": "Unable to connect to Beurer light"
+            "connect": "Unable to connect to Beurer lamp"
         },
         "abort": {
-            "cannot_validate": "Unable to validate Beurer light",
-            "cannot_connect": "Unable to connect to Beurer light"
+            "cannot_validate": "Unable to validate Beurer lamp",
+            "cannot_connect": "Unable to connect to Beurer lamp"
         }
     },
-    "title": "Beurer"
+    "title": "Beurer Daylight Lamps"
 }
