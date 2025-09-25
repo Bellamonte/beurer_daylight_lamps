@@ -1,7 +1,7 @@
 {
     "domain": "ha_beurer",
     "name": "Beurer",
-    "codeowners": ["Bellamonte"],
+    "codeowners": ["@Bellamonte"],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/Bellamonte/ha_beurer",
