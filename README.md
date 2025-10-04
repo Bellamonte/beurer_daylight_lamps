@@ -1,6 +1,6 @@
 # beurer_daylight_lamps
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/Bellamonte/beurer_daylight_lamps)
-![HACS + Hassfest](https://github.com/Bellamonte/beurer_daylight_lamps/actions/workflows/validate-hacs-hassfest.yaml/badge.svg)
+[![Validate HACS + Hassfest](https://github.com/Bellamonte/beurer_daylight_lamps/actions/workflows/validate-hacs-hassfest.yml/badge.svg)](https://github.com/Bellamonte/beurer_daylight_lamps/actions/workflows/validate-hacs-hassfest.yml)
 
 Home Assistant integration for BLE based Beurer daylight lamps
 
