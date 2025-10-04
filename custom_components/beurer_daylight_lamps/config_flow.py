@@ -1,5 +1,5 @@
 import asyncio
-from .beurer import discover, get_device, BeurerInstance
+from .beurer_daylight_lamps import discover, get_device, BeurerInstance
 from typing import Any
 
 from homeassistant import config_entries
@@ -46,7 +46,7 @@ class BeurerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("mac"): vol.In(
                         {
                             **{device.address: device.name for device in devices},
-                            MANUAL_MAC: "Manually add a MAC address",
+                            MANUAL_MAC: "man. MAC",
                         }
                     ),
                     vol.Required("name"): str

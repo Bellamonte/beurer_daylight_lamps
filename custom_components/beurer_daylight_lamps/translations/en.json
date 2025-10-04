@@ -3,7 +3,7 @@
         "step": {
             "user": {
                 "data": {
-                    "mac": "Bluetooth name or MAC address",
+                    "mac": "Pick a Bluetooth name or to manually add a Bluetooth MAC address:",
                     "name": "Name"
                 },
                 "title": "Pick a Beurer lamp. Make sure lamp is in sight for validation."

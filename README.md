@@ -15,12 +15,14 @@ Note: Restart is always required after installation.
 Installation can be done through [HACS custom repository](https://hacs.xyz/docs/faq/custom_repositories).
 
 ### Manual installation
-You can manually clone this repository inside `config/custom_components/beurer`.
+You can manually clone this repository and then copy the whole directory `custom_components/beurer_daylight_lamps` into `config/custom_components/`.
 
-For  example, from Terminal plugin:
+For example:
 ```
-cd /config/custom_components
 git clone https://github.com/Bellamonte/beurer_daylight_lamps beurer_daylight_lamps
+cd beurer_daylight_lamps/custom_components/beurer_daylight_lamps
+mkdir -p ~/homeassistant/config/custom_components/beurer_daylight_lamps
+cp -r * ~/homeassistant/config/custom_components/beurer_daylight_lamps/
 ```
 
 ## Setup
@@ -54,7 +56,7 @@ See [logger intergration docs](https://www.home-assistant.io/integrations/logger
 logger:
   default: warn
   logs:
-    custom_components.beurer: debug
+    custom_components.beurer_daylight_lamps: debug
 ```
 
 ## Credits

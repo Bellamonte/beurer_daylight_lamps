@@ -7,7 +7,7 @@ from homeassistant.const import CONF_MAC
 from bleak import BleakScanner, BLEDevice
 
 from .const import DOMAIN, LOGGER
-from .beurer import BeurerInstance, get_device
+from .beurer_daylight_lamps import BeurerInstance, get_device
 
 PLATFORMS = ["light"]
 

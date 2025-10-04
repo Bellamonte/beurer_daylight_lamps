@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "data": {
-          "mac": "Bluetooth-MAC-Adresse",
+          "mac": "Wählen Sie einen Bluetooth-Namen oder, dass Sie manuell eine Bluetooth-MAC-Adresse hinzufügen möchten:",
           "name": "Name"
         },
         "title": "Wählen Sie eine Beurer Lampe. Stellen Sie sicher, dass das Licht zur Validierung sichtbar ist."
@@ -17,7 +17,7 @@
       },
       "manual": {
         "data": {
-          "mac": "Bluetooth-Name oder -MAC-Adresse",
+          "mac": "Bluetooth-MAC-Adresse",
           "name": "Name"
         },
         "title": "Bluetooth-MAC-Adresse eingeben"
