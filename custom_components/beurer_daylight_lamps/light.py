@@ -2,7 +2,7 @@ import asyncio
 import voluptuous as vol
 from typing import Any, Optional, Tuple
 
-from custom_components.beurer_daylight_lamps.beurer import BeurerInstance
+from custom_components.beurer_daylight_lamps.beurer_daylight_lamps import BeurerInstance
 from custom_components.beurer_daylight_lamps.const import DOMAIN
 
 from homeassistant.const import CONF_MAC
